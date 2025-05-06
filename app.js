@@ -255,8 +255,36 @@ class Tetris {
 
     drawStage() {
         this.clear(this.stageCanvas);
-
+    
         let context = this.stageCanvas.getContext("2d");
+    
+        // 그리드 그리기
+        context.strokeStyle = "rgba(255, 255, 255, 0.5)"; // 그리드 색상 (진한 흰색)
+        context.lineWidth = 1; // 선 두께를 1로 설정
+        context.setLineDash([4, 2]); // 점선 설정: [4px 선, 2px 간격]
+    
+        // 수직선 그리기
+        for (let x = 0; x <= this.stageWidth; x++) {
+            let xPos = this.stageLeftPadding + x * this.cellSize;
+            context.beginPath();
+            context.moveTo(xPos, this.stageTopPadding);
+            context.lineTo(xPos, this.stageTopPadding + this.cellSize * this.stageHeight);
+            context.stroke();
+        }
+
+        // 수평선 그리기
+        for (let y = 0; y <= this.stageHeight; y++) {
+        let yPos = this.stageTopPadding + y * this.cellSize;
+        context.beginPath();
+        context.moveTo(this.stageLeftPadding, yPos);
+        context.lineTo(this.stageLeftPadding + this.cellSize * this.stageWidth, yPos);
+        context.stroke();
+        }
+    
+        // 점선 초기화 (다른 그리기에 영향을 주지 않도록)
+        context.setLineDash([]);
+    
+        // 블록 그리기
         for (let x = 0; x < this.virtualStage.length; x++) {
             for (let y = 0; y < this.virtualStage[x].length; y++) {
                 if (this.virtualStage[x][y] != null) {
