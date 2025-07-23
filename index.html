@@ -11,14 +11,29 @@
     <h1>Tetris</h1>
     <div class="wrapper-container">
         <span class="tetris-container">
-            <canvas id="stage" width="250" height="500" style="background-color:black;">
+            <canvas id="stage" width="200" height="400" style="background-color:black;">
             </canvas>
             <span class="tetris-panel-container">
               <p>Next:</p>
-                <canvas id="next" width="150" height="150" style="background-color:black;">
+                <canvas id="next" width="80" height="80" style="background-color:black;">
                 </canvas>
-              <p>LINES:<span id="lines">0</span></p>
+              <div class="score-panel">
+                <p>SCORE: <span id="score">0</span></p>
+                <p>LEVEL: <span id="level">1</span></p>
+                <p>LINES: <span id="lines">0</span></p>
+              </div>
               <p><span id="message"></span></p>
+              <div class="high-scores">
+                <h3>HIGH SCORES</h3>
+                <ol id="high-score-list">
+                  <li>0</li>
+                  <li>0</li>
+                  <li>0</li>
+                  <li>0</li>
+                  <li>0</li>
+                </ol>
+                <button id="reset-button" class="reset-button">NEW GAME</button>
+              </div>
               <div class="tetris-panel-container-padding"></div>
               <table class="tetris-button-panel">
                 <tr>
