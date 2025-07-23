@@ -9,13 +9,17 @@ class Tetris {
         let stageCanvasWidth = parseInt(this.stageCanvas.width, 10);
         let stageCanvasHeight = parseInt(this.stageCanvas.height, 10);
 
-        let cellWidth = stageCanvasWidth / this.stageWidth;
-        let cellHeight = stageCanvasHeight / this.stageHeight;
-        this.cellSize = cellWidth < cellHeight ? cellWidth : cellHeight;
+        // 정사각형 셀을 위한 크기 계산 (20px로 줄임)
+        this.cellSize = 20;
         this.stageLeftPadding = (stageCanvasWidth - this.cellSize * this.stageWidth) / 2;
         this.stageTopPadding = (stageCanvasHeight - this.cellSize * this.stageHeight) / 2;
         this.blocks = this.createBlocks();
         this.deletedLines = 0;
+        this.score = 0;
+        this.level = 1;
+        this.linesNeededForNextLevel = 10;
+        this.fallSpeed = 500;
+        this.highScores = this.loadHighScores();
 
         window.onkeydown = (e) => {
             if (e.keyCode === 37) {
@@ -33,6 +37,10 @@ class Tetris {
         document.getElementById("tetris-rotate-button").onmousedown = () => this.rotate();
         document.getElementById("tetris-move-right-button").onmousedown = () => this.moveRight();
         document.getElementById("tetris-fall-button").onmousedown = () => this.fall();
+        document.getElementById("reset-button").onclick = () => {
+            this.resetGame();
+            this.startGame();
+        };
     }
 
     createBlocks() {
@@ -144,6 +152,7 @@ class Tetris {
         this.virtualStage = virtualStage;
         this.currentBlock = null;
         this.nextBlock = this.getRandomBlock();
+        this.displayHighScores();
         this.mainLoop();
     }
 
@@ -161,7 +170,7 @@ class Tetris {
                 this.stageTopPadding + this.blockY * this.cellSize,
                 this.currentBlock, this.blockAngle, this.stageCanvas);
         }
-        setTimeout(this.mainLoop.bind(this), 500);
+        setTimeout(this.mainLoop.bind(this), this.fallSpeed);
     }
 
     createNewBlock() {
@@ -174,6 +183,7 @@ class Tetris {
         if (!this.checkBlockMove(this.blockX, this.blockY, this.currentBlock, this.blockAngle)) {
             let messageElem = document.getElementById("message");
             messageElem.innerText = "GAME OVER";
+            this.gameOver();
             return false;
         }
         return true;
@@ -181,7 +191,7 @@ class Tetris {
 
     drawNextBlock() {
         this.clear(this.nextCanvas);
-        this.drawBlock(this.cellSize * 2, this.cellSize, this.nextBlock,
+        this.drawBlock(this.cellSize * 0.5, this.cellSize * 0.5, this.nextBlock,
             0, this.nextCanvas);
     }
 
@@ -194,6 +204,8 @@ class Tetris {
             this.blockY++;
         } else {
             this.fixBlock(this.blockX, this.blockY, this.currentBlock, this.blockAngle);
+            this.score += 10; // 블록 고정 시 10점 추가
+            document.getElementById("score").innerText = "" + this.score;
             this.currentBlock = null;
         }
     }
@@ -248,6 +260,8 @@ class Tetris {
         }
         if (linesCleared > 0) {
             this.deletedLines += linesCleared;
+            this.updateScore(linesCleared);
+            this.updateLevel();
             let linesElem = document.getElementById("lines");
             linesElem.innerText = "" + this.deletedLines;
         }
@@ -339,5 +353,94 @@ class Tetris {
         let context = canvas.getContext("2d");
         context.fillStyle = "rgb(0, 0, 0)";
         context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    updateScore(linesCleared) {
+        // 기본 점수: 라인당 100점, 레벨 보너스 적용
+        let baseScore = linesCleared * 100 * this.level;
+        
+        // 여러 줄 삭제 보너스
+        let multiplier = 1;
+        if (linesCleared === 2) multiplier = 2.5;
+        else if (linesCleared === 3) multiplier = 5;
+        else if (linesCleared === 4) multiplier = 8; // 테트리스 보너스
+        
+        this.score += Math.floor(baseScore * multiplier);
+        
+        let scoreElem = document.getElementById("score");
+        scoreElem.innerText = "" + this.score;
+    }
+
+    updateLevel() {
+        let newLevel = Math.floor(this.deletedLines / this.linesNeededForNextLevel) + 1;
+        if (newLevel > this.level) {
+            this.level = newLevel;
+            this.fallSpeed = Math.max(50, 500 - (this.level - 1) * 50); // 레벨당 50ms씩 빨라짐
+            
+            let levelElem = document.getElementById("level");
+            levelElem.innerText = "" + this.level;
+        }
+    }
+
+    gameOver() {
+        this.checkAndUpdateHighScore();
+        this.displayHighScores();
+    }
+
+    checkAndUpdateHighScore() {
+        this.highScores.push(this.score);
+        this.highScores.sort((a, b) => b - a); // 내림차순 정렬
+        this.highScores = this.highScores.slice(0, 5); // 상위 5개만 유지
+        this.saveHighScores();
+    }
+
+    loadHighScores() {
+        let scores = localStorage.getItem('tetrisHighScores');
+        return scores ? JSON.parse(scores) : [0, 0, 0, 0, 0];
+    }
+
+    saveHighScores() {
+        localStorage.setItem('tetrisHighScores', JSON.stringify(this.highScores));
+    }
+
+    displayHighScores() {
+        let highScoreList = document.getElementById("high-score-list");
+        highScoreList.innerHTML = "";
+        
+        this.highScores.forEach((score, index) => {
+            let li = document.createElement("li");
+            li.textContent = score.toLocaleString(); // 천 단위 구분 기호 추가
+            if (score === this.score && index === 0) {
+                li.style.color = "#f39c12"; // 새로운 최고 점수는 금색으로 표시
+                li.style.fontWeight = "bold";
+                li.textContent += " 🏆";
+            }
+            highScoreList.appendChild(li);
+        });
+    }
+
+    resetGame() {
+        this.score = 0;
+        this.level = 1;
+        this.deletedLines = 0;
+        this.fallSpeed = 500;
+        this.currentBlock = null;
+        
+        // UI 업데이트
+        document.getElementById("score").innerText = "0";
+        document.getElementById("level").innerText = "1";
+        document.getElementById("lines").innerText = "0";
+        document.getElementById("message").innerText = "";
+        
+        // 가상 스테이지 초기화
+        this.virtualStage = [];
+        for (let x = 0; x < this.stageWidth; x++) {
+            this.virtualStage[x] = [];
+            for (let y = 0; y < this.stageHeight; y++) {
+                this.virtualStage[x][y] = null;
+            }
+        }
+        
+        this.displayHighScores();
     }
 }
